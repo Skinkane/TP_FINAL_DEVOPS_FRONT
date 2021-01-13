@@ -60,8 +60,29 @@ jobs:
           command: |
             sudo npm install -g --silent netlify-cli
             netlify deploy --prod --auth $NETLIFY_AUTH_TOKEN --dir=/tmp/dist --site $NETLIFY_SITE_ID
+
+ Docker:
+    working_directory: /dockerapp
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name:  Dockerize the app
+          command: |
+            docker build --cache-from=app -t app .
+      - run:
+          name: Publish app to docker hub
+          command: |
+            docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+            docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
+            docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:latest
+            docker push $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
+            docker push $DOCKER_HUB_USERNAME/tp-devops-front:latest
+
 workflows:
-  Build_Test_N_Deploy:
+  Build_Test_N_Deploy_FRONT:
     jobs:
       - Installation
       - Test
@@ -70,5 +91,9 @@ workflows:
             - Installation
       - Netlify:
           context: Netlify
+          requires:
+            - Build
+      - Docker:
+          context: Docker
           requires:
             - Build
