@@ -1,4 +1,3 @@
-
 version: 2.1
 jobs:
   Installation:
@@ -15,7 +14,6 @@ jobs:
           key: yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
           paths:
             - node_modules
-            
   Test:
     docker:
       - image: circleci/node:12.9-browsers
@@ -27,8 +25,7 @@ jobs:
       - run:
           name: Test
           command: yarn test
-
-  Build :
+  Build:
     docker:
       - image: circleci/node:12.9-browsers
     steps:
@@ -37,10 +34,10 @@ jobs:
           keys:
             - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
       - run:
-          name: Build
+          name: Build Prod
           command : yarn run build
       - run:
-          name: Copy to worspace
+          name: Copy to workspace
           command: |
             cp dist/ /tmp/dist -r
       - store_artifacts:
@@ -49,46 +46,43 @@ jobs:
           root: /tmp
           paths:
             - dist
-
   Netlify:
     docker:
       - image: circleci/node:12.9-browsers
-    working_directory: ~/netlfify
+    working_directory: ~/deploy-netlfify
     steps:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Deploy on Netlify
+          name: Deploy
           command: |
             sudo npm install -g --silent netlify-cli
             netlify deploy --prod --auth $NETLIFY_AUTH_TOKEN --dir=/tmp/dist --site $NETLIFY_SITE_ID
-
-   Docker:
-      working_directory: /dockerapp
-      docker:
-        - image: circleci/buildpack-deps:stretch
-      steps:
-        - checkout
-        - setup_remote_docker
-        - run:
-            name:  Dockerize the app
-            command: |
-              docker build --cache-from=app -t app .
-        - run:
-            name: Publish app to docker hub
-            command: |
-              docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
-              docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
-              docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:latest
-              docker push $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
-              docker push $DOCKER_HUB_USERNAME/tp-devops-front:latest
-
+  Docker:
+    working_directory: /dockerapp
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name:  Dockerize the app
+          command: |
+            docker build --cache-from=app -t app .
+      - run:
+          name: Publish app to docker hub
+          command: |
+            docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+            docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
+            docker tag app $DOCKER_HUB_USERNAME/tp-devops-front:latest
+            docker push $DOCKER_HUB_USERNAME/tp-devops-front:$CIRCLE_BUILD_NUM
+            docker push $DOCKER_HUB_USERNAME/tp-devops-front:latest
 workflows:
-  Build_Test_N_Deploy_FRONT:
+  build_deploy:
     jobs:
       - Installation
       - Test
-      - Build :
+      - Build:
           requires:
             - Installation
       - Netlify:
