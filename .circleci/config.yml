@@ -27,8 +27,33 @@ jobs:
           name: Test
           command: yarn test
 
+  Build Docker:
+    docker:
+      - image: circleci/node:12.9-browsers
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          name: Build
+          command : yarn run build
+      - run:
+          name: Copy to worspace
+          command: |
+            cp dist/ /tmp/dist -r
+      - store_artifacts:
+          path: /tmp/dist
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - dist
+
 workflows:
   Build_Test_N_Deploy:
     jobs:
       - Installation
       - Test
+      - Build Docker:
+          requires:
+            - Installation
