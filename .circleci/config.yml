@@ -1,0 +1,33 @@
+  
+version: 2.1
+jobs: 
+  install:
+    docker:
+      - image: circleci/node:12.9-browsers
+    steps: 
+      - checkout
+      - restore_cache: 
+          keys: 
+            - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+            - yarn-packages
+      - run: yarn global add node-gyp && yarn install
+      - save_cache:
+          key: yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+          paths: 
+            - node_modules
+  test: 
+    docker:
+      - image: circleci/node:12.9-browsers
+    steps: 
+      - checkout
+      - restore_cache: 
+          keys: 
+            - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          name: Test
+          command: yarn test
+
+workflows:
+  Build_Test_N_Deploy: 
+    jobs: 
+      - install
