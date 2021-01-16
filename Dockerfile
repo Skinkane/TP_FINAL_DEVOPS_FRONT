@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN yarn install
 
-COPY . . 
+COPY . .
 
-EXPOSE 8080
+EXPOSE 2020
 CMD ["yarn", "serve"]
